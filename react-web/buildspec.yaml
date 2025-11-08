@@ -14,9 +14,9 @@ phases:
       - echo "Building the project..."
       - npm run build
 
-post_build:
-  commands:
-    - echo "Deploying build output to S3..."
-    # Replace with your actual bucket name
-    - aws s3 sync dist s3://msr-staticwebsite-react-movieflix-20251106181800/ --delete
-    - echo "Deployment to S3 completed."
+  post_build:
+    commands:
+      - echo "Deploying build output to S3..."
+      # Replace with your actual bucket name
+      - aws s3 sync dist s3://msr-staticwebsite-react-movieflix-20251106181800/ --delete
+      - echo "Deployment to S3 completed."
