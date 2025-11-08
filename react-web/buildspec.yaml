@@ -3,7 +3,7 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      nodejs: 18  # or whatever version you need
+      nodejs: 22.17.1  # or whatever version you need
     commands:
       - echo "Installing dependencies..."
       - cd react-web
