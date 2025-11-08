@@ -6,6 +6,7 @@ phases:
       nodejs: 18  # or whatever version you need
     commands:
       - echo "Installing dependencies..."
+      - cd react-web
       - npm install
 
   build:
