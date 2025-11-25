@@ -8,20 +8,19 @@ env:
 phases:
   install:
     runtime-versions:
-      nodejs: 22.17.1  # or whatever version you need
+      nodejs: 22.17.1
     commands:
-      - echo "Installing dependencies..."
-      - cd react-web
-      - npm install
+    - echo "Installing dependencies..."
+    - cd react-web
+    - npm install
 
   build:
     commands:
-      - echo "Building the project..."
-      - npm run build
+    - echo "Building the project..."
+    - npm run build
 
   post_build:
     commands:
-      - echo "Deploying build output to S3..."
-      # Replace with your actual bucket name
-      - aws s3 sync dist s3://msr-staticwebsite-react-movieflix-20251106181800/ --delete
-      - echo "Deployment to S3 completed."
+    - echo "Deploying build output to S3..."
+    - aws s3 sync dist s3://msr-staticwebsite-react-movieflix-20251106181800/ --delete
+    - echo "Deployment to S3 completed."

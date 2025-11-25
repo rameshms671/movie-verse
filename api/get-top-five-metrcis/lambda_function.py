@@ -4,7 +4,7 @@ import json
 from decimal import Decimal
 
 dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table(os.environ['TABLE_NAME'])
+table = dynamodb.Table('MovieMetrics')
 
 # ✅ Custom encoder to convert Decimal to int/float
 class DecimalEncoder(json.JSONEncoder):

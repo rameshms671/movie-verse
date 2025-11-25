@@ -1,0 +1,19 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+    - echo "Installing dependencies..."
+    - cd api/create-metrics
+    - pip install -r requirements.txt -t .
+
+  build:
+    commands:
+    - echo "Preparing project zip file..."
+    - zip -r CreateMovieMetrics.zip .
+
+  post_build:
+    commands:
+    - echo "Deploying Lambda function..."
+    - aws lambda update-function-code --function-name MovieVerseCreateMetrics --zip-file fileb://CreateMovieMetrics.zip
+    - echo "Lambda function deployment completed."
