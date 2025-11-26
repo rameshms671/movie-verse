@@ -5,19 +5,21 @@ phases:
     commands:
       - echo "Preparing deployment..."
       - ls -la
-      - echo "Extracting build artifacts..."
+      - echo "Checking BuildOutput directory..."
+      - ls -la $CODEBUILD_SRC_DIR_BuildOutput || echo "BuildOutput directory not found"
       
   build:
     commands:
       - echo "Deploying Lambda function $LAMBDA_FUNCTION_NAME..."
       - |
-        if [ -f "api/create-metrics/CreateMovieMetrics.zip" ]; then
+        if [ -f "$CODEBUILD_SRC_DIR_BuildOutput/api/create-metrics/CreateMovieMetrics.zip" ]; then
           aws lambda update-function-code \
             --function-name $LAMBDA_FUNCTION_NAME \
-            --zip-file fileb://api/create-metrics/CreateMovieMetrics.zip
+            --zip-file fileb://$CODEBUILD_SRC_DIR_BuildOutput/api/create-metrics/CreateMovieMetrics.zip
           echo "Lambda function updated successfully"
         else
-          echo "ERROR: CreateMovieMetrics.zip not found"
+          echo "ERROR: CreateMovieMetrics.zip not found in BuildOutput"
+          ls -la $CODEBUILD_SRC_DIR_BuildOutput/api/create-metrics/ || echo "Directory not found"
           exit 1
         fi
 
