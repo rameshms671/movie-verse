@@ -1,0 +1,29 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo "Preparing deployment..."
+      - ls -la
+      - echo "Checking BuildOutput directory..."
+      - ls -la $CODEBUILD_SRC_DIR_BuildOutput || echo "BuildOutput directory not found"
+      
+  build:
+    commands:
+      - echo "Deploying Lambda function $LAMBDA_FUNCTION_NAME..."
+      - |
+        if [ -f "$CODEBUILD_SRC_DIR_BuildOutput/api/get-top-five-metrics/GetTopFiveMetrics.zip" ]; then
+          aws lambda update-function-code \
+            --function-name $LAMBDA_FUNCTION_NAME \
+            --zip-file fileb://$CODEBUILD_SRC_DIR_BuildOutput/api/get-top-five-metrics/GetTopFiveMetrics.zip
+          echo "Lambda function updated successfully"
+        else
+          echo "ERROR: GetTopFiveMetrics.zip not found in BuildOutput"
+          ls -la $CODEBUILD_SRC_DIR_BuildOutput/api/get-top-five-metrics/ || echo "Directory not found"
+          exit 1
+        fi
+
+  post_build:
+    commands:
+      - echo "Deployment completed successfully"
+      - aws lambda get-function --function-name $LAMBDA_FUNCTION_NAME --query 'Configuration.[FunctionName,LastModified,Version]'
