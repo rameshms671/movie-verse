@@ -8,7 +8,7 @@ env:
 phases:
   install:
     runtime-versions:
-      nodejs: 22.17.1
+      nodejs: 22
     commands:
     - echo "Installing dependencies..."
     - cd react-web
@@ -16,11 +16,12 @@ phases:
 
   build:
     commands:
-    - echo "Building the project..."
+    - echo "Building the React project..."
     - npm run build
+    - echo "Build completed successfully"
 
-  post_build:
-    commands:
-    - echo "Deploying build output to S3..."
-    - aws s3 sync dist s3://msr-staticwebsite-react-movieflix-20251106181800/ --delete
-    - echo "Deployment to S3 completed."
+artifacts:
+  files:
+  - '**/*'
+  base-directory: dist
+  name: BuildOutput
