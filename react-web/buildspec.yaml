@@ -5,6 +5,13 @@ env:
     VITE_TMDB_API_KEY: "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJkY2VkNzUxMWU2MmUwMzUwZDgxNmEyNzA2OGRhOWZiOCIsIm5iZiI6MTc2MjI2OTQ0Mi4wNTQwMDAxLCJzdWIiOiI2OTBhMTkwMjU4ZDQyMTcxN2E0MTM5MzkiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.qQkTLZD12a0juvf0VlXl4WkKsFiLuSighJy0m41frNs"
 
 phases:
+  pre_build:
+    commands:
+    - echo "Preparing build environment..."
+    - printf "VITE_TMDB_API_KEY=%s\nVITE_AWS_API_BASE_URL=%s\n" "$VITE_TMDB_API_KEY" "$VITE_AWS_API_BASE_URL" > react-web/.env.production
+    - echo "Created react-web/.env.production:" 
+    - cat react-web/.env.production
+
   install:
     runtime-versions:
       nodejs: 22
@@ -16,6 +23,7 @@ phases:
   build:
     commands:
     - echo "Building the React project..."
+    - cd react-web
     - npm run build
     - echo "Build completed successfully"
 

@@ -33,7 +33,10 @@ Resources:
             - s3:ListBucket
             Resource:
             - !ImportValue S3BucketMovieVerseCodeBuildArtifactStoreArn
-            - !Sub '${S3BucketMovieVerseCodeBuildArtifactStoreArn}/*'
+            - !Join
+              - ''
+              - - !ImportValue S3BucketMovieVerseCodeBuildArtifactStoreArn
+                - '/*'
           - Effect: Allow
             Action:
             - codebuild:BatchGetBuilds
