@@ -1,0 +1,343 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  GithubCodeStarConnectionArn:
+    Type: String
+    Description: ARN of the existing CodeStar Connection for GitHub
+    Default: arn:aws:codeconnections:us-east-1:906333058183:connection/781f56bb-71a8-42cb-8c53-ad3c6f5df737
+
+Resources:
+  # S3 bucket for CodeBuild artifact store is defined in aws_resources/S3Bucket.yaml
+  # The bucket name and ARN are imported via !ImportValue
+
+  IAMRoleMovieVerseCodePipelineServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - codepipeline.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: CodePipelinePolicy
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - s3:GetObject
+            - s3:PutObject
+            - s3:GetBucketLocation
+            - s3:ListBucket
+            Resource:
+            - !ImportValue S3BucketMovieVerseCodeBuildArtifactStoreArn
+            - !Sub '${S3BucketMovieVerseCodeBuildArtifactStoreArn}/*'
+          - Effect: Allow
+            Action:
+            - codebuild:BatchGetBuilds
+            - codebuild:StartBuild
+            Resource: '*'
+          - Effect: Allow
+            Action:
+            - codeconnections:UseConnection
+            - codestar-connections:UseConnection
+            Resource: !Ref GithubCodeStarConnectionArn
+      Tags: 
+      - Key: ApplicationName
+        Value: MovieVerse
+
+  IAMRoleMovieVerseCodeBuildServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - codebuild.amazonaws.com
+          Action: sts:AssumeRole
+      ManagedPolicyArns: 
+      - arn:aws:iam::aws:policy/AWSCodeBuildDeveloperAccess
+      - arn:aws:iam::aws:policy/AmazonS3FullAccess
+      - arn:aws:iam::aws:policy/AWSLambda_FullAccess
+      Policies:
+      - PolicyName: CloudWatchLogsPolicy
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource: '*'
+      Tags: 
+      - Key: ApplicationName
+        Value: MovieVerse
+
+  CodeBuildProjectMovieVerseCreateMetricsLambdaFunctionBuild:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: MovieVerseCreateMetricsLambdaBuild
+      ServiceRole: !GetAtt IAMRoleMovieVerseCodeBuildServiceRole.Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: api/create-metrics/buildspec.yaml
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:7.0
+        Type: LINUX_CONTAINER
+
+  CodeBuildProjectMovieVerseCreateMetricsLambdaFunctionDeploy:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: MovieVerseCreateMetricsLambdaDeploy
+      ServiceRole: !GetAtt IAMRoleMovieVerseCodeBuildServiceRole.Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: api/create-metrics/deployspec.yaml
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:7.0
+        Type: LINUX_CONTAINER
+        EnvironmentVariables:
+        - Name: LAMBDA_FUNCTION_NAME
+          Value: MovieVerseCreateMetrics
+
+  CodeBuildProjectMovieVerseGetTopFiveMetricsLambdaFunctionBuild:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: MovieVerseGetTopFiveMetricsLambdaBuild
+      ServiceRole: !GetAtt IAMRoleMovieVerseCodeBuildServiceRole.Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: api/get-top-five-metrics/buildspec.yaml
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:7.0
+        Type: LINUX_CONTAINER
+
+  CodeBuildProjectMovieVerseGetTopFiveMetricsLambdaFunctionDeploy:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: MovieVerseGetTopFiveMetricsLambdaDeploy
+      ServiceRole: !GetAtt IAMRoleMovieVerseCodeBuildServiceRole.Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: api/get-top-five-metrics/deployspec.yaml
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:7.0
+        Type: LINUX_CONTAINER
+        EnvironmentVariables:
+        - Name: LAMBDA_FUNCTION_NAME
+          Value: MovieVerseGetTopFiveMetrics
+
+  CodePipelineMovieVerseCreateMetricsLambdaDeploy:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      Name: MovieVerseCreateMetricsLambdaDeploy
+      RoleArn: !GetAtt IAMRoleMovieVerseCodePipelineServiceRole.Arn
+      ArtifactStore:
+        Type: S3
+        Location: !ImportValue S3BucketMovieVerseCodeBuildArtifactStoreName
+      Stages:
+      - Name: Source
+        Actions:
+        - Name: SourceAction
+          ActionTypeId:
+            Category: Source
+            Owner: AWS
+            Provider: CodeStarSourceConnection
+            Version: '1'
+          Configuration:
+            ConnectionArn: !Ref GithubCodeStarConnectionArn
+            FullRepositoryId: rameshms671/movie-verse
+            BranchName: main
+            OutputArtifactFormat: CODE_ZIP
+          OutputArtifacts:
+          - Name: SourceOutput
+      - Name: Build
+        Actions:
+        - Name: BuildAction
+          ActionTypeId:
+            Category: Build
+            Owner: AWS
+            Provider: CodeBuild
+            Version: '1'
+          Configuration:
+            ProjectName: !Ref CodeBuildProjectMovieVerseCreateMetricsLambdaFunctionBuild
+          InputArtifacts:
+          - Name: SourceOutput
+          OutputArtifacts:
+          - Name: BuildOutput
+      - Name: Deploy
+        Actions:
+        - Name: DeployLambda
+          ActionTypeId:
+            Category: Build
+            Owner: AWS
+            Provider: CodeBuild
+            Version: '1'
+          Configuration:
+            ProjectName: !Ref CodeBuildProjectMovieVerseCreateMetricsLambdaFunctionDeploy
+            PrimarySource: SourceOutput
+          InputArtifacts:
+          - Name: SourceOutput
+          - Name: BuildOutput
+          OutputArtifacts:
+          - Name: DeployOutput
+
+  CodePipelineMovieVerseGetTopFiveMetricsLambdaDeploy:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      Name: MovieVerseGetTopFiveMetricsLambdaDeploy
+      RoleArn: !GetAtt IAMRoleMovieVerseCodePipelineServiceRole.Arn
+      ArtifactStore:
+        Type: S3
+        Location: !ImportValue S3BucketMovieVerseCodeBuildArtifactStoreName
+      Stages:
+      - Name: Source
+        Actions:
+        - Name: SourceAction
+          ActionTypeId:
+            Category: Source
+            Owner: AWS
+            Provider: CodeStarSourceConnection
+            Version: '1'
+          Configuration:
+            ConnectionArn: !Ref GithubCodeStarConnectionArn
+            FullRepositoryId: rameshms671/movie-verse
+            BranchName: main
+            OutputArtifactFormat: CODE_ZIP
+          OutputArtifacts:
+          - Name: SourceOutput
+      - Name: Build
+        Actions:
+        - Name: BuildAction
+          ActionTypeId:
+            Category: Build
+            Owner: AWS
+            Provider: CodeBuild
+            Version: '1'
+          Configuration:
+            ProjectName: !Ref CodeBuildProjectMovieVerseGetTopFiveMetricsLambdaFunctionBuild
+          InputArtifacts:
+          - Name: SourceOutput
+          OutputArtifacts:
+          - Name: BuildOutput
+      - Name: Deploy
+        Actions:
+        - Name: DeployLambda
+          ActionTypeId:
+            Category: Build
+            Owner: AWS
+            Provider: CodeBuild
+            Version: '1'
+          Configuration:
+            ProjectName: !Ref CodeBuildProjectMovieVerseGetTopFiveMetricsLambdaFunctionDeploy
+            PrimarySource: SourceOutput
+          InputArtifacts:
+          - Name: SourceOutput
+          - Name: BuildOutput
+          OutputArtifacts:
+          - Name: DeployOutput
+
+  CodeBuildProjectMovieVerseReactWebBuild:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: MovieVerseReactWebBuild
+      ServiceRole: !GetAtt IAMRoleMovieVerseCodeBuildServiceRole.Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: react-web/buildspec.yaml
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:7.0
+        Type: LINUX_CONTAINER
+
+  CodeBuildProjectMovieVerseReactWebDeploy:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: MovieVerseReactWebDeploy
+      ServiceRole: !GetAtt IAMRoleMovieVerseCodeBuildServiceRole.Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: react-web/deployspec.yaml
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:7.0
+        Type: LINUX_CONTAINER
+        EnvironmentVariables:
+        - Name: S3_BUCKET_NAME
+          Value: msr-movieverse-website-2025v2
+
+  CodePipelineMovieVerseReactWebDeploy:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      Name: MovieVerseReactWebDeploy
+      RoleArn: !GetAtt IAMRoleMovieVerseCodePipelineServiceRole.Arn
+      ArtifactStore:
+        Type: S3
+        Location: !ImportValue S3BucketMovieVerseCodeBuildArtifactStoreName
+      Stages:
+      - Name: Source
+        Actions:
+        - Name: SourceAction
+          ActionTypeId:
+            Category: Source
+            Owner: AWS
+            Provider: CodeStarSourceConnection
+            Version: '1'
+          Configuration:
+            ConnectionArn: !Ref GithubCodeStarConnectionArn
+            FullRepositoryId: rameshms671/movie-verse
+            BranchName: main
+            OutputArtifactFormat: CODE_ZIP
+          OutputArtifacts:
+          - Name: SourceOutput
+      - Name: Build
+        Actions:
+        - Name: BuildAction
+          ActionTypeId:
+            Category: Build
+            Owner: AWS
+            Provider: CodeBuild
+            Version: '1'
+          Configuration:
+            ProjectName: !Ref CodeBuildProjectMovieVerseReactWebBuild
+          InputArtifacts:
+          - Name: SourceOutput
+          OutputArtifacts:
+          - Name: BuildOutput
+      - Name: Deploy
+        Actions:
+        - Name: DeployToS3
+          ActionTypeId:
+            Category: Build
+            Owner: AWS
+            Provider: CodeBuild
+            Version: '1'
+          Configuration:
+            ProjectName: !Ref CodeBuildProjectMovieVerseReactWebDeploy
+            PrimarySource: SourceOutput
+          InputArtifacts:
+          - Name: SourceOutput
+          - Name: BuildOutput
+          OutputArtifacts:
+          - Name: DeployOutput

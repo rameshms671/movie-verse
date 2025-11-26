@@ -1,0 +1,73 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: S3 bucket for Lambda build artifacts
+
+Resources:
+  ### -------------------------
+  ### Public S3 Bucket for Static Content
+  ### -------------------------
+  S3BucketMovieVerseWebsite:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    Properties:
+      BucketName: msr-movieverse-website-2025v2
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+
+  ### -------------------------
+  ### S3 Bucket Policy that allows public access for Website static content
+  ### -------------------------
+  S3BucketPolicyMovieVerseWebsite:
+    Type: AWS::S3::BucketPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Bucket: !Ref S3BucketMovieVerseWebsite
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal: '*'
+          Action: s3:GetObject
+          Resource: !Sub ${S3BucketMovieVerseWebsite.Arn}/*
+
+  ### -------------------------
+  ### S3 Bucket for Code pipeline and CodeBuild artifacts
+  ### -------------------------
+  S3BucketMovieVerseCodeBuildArtifactStore:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: msr-movieverse-codebuild-artifactstore-2025v2
+      Tags:
+      - Key: ApplicationName
+        Value: MovieVerse
+      VersioningConfiguration:
+        Status: Enabled
+
+Outputs:
+  S3BucketMovieVerseLambdaSourceCodeName:
+    Value: !Ref S3BucketMovieVerseLambdaSourceCode
+    Export:
+      Name: S3BucketMovieVerseLambdaSourceCodeName
+
+  S3BucketMovieVerseWebsiteURL:
+    Description: URL of the S3 static website
+    Value: !GetAtt S3BucketMovieVerseWebsite.WebsiteURL
+    Export:
+      Name: S3BucketMovieVerseWebsiteURL
+
+  S3BucketMovieVerseCodeBuildArtifactStoreName:
+    Description: Name of the CodeBuild artifact S3 bucket
+    Value: !Ref S3BucketMovieVerseCodeBuildArtifactStore
+    Export:
+      Name: S3BucketMovieVerseCodeBuildArtifactStoreName
+
+  S3BucketMovieVerseCodeBuildArtifactStoreArn:
+    Description: ARN of the CodeBuild artifact S3 bucket
+    Value: !GetAtt S3BucketMovieVerseCodeBuildArtifactStore.Arn
+    Export:
+      Name: S3BucketMovieVerseCodeBuildArtifactStoreArn

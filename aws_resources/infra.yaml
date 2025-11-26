@@ -1,0 +1,217 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: API Gateway + Lambda infrastructure
+
+Resources:
+  IAMRoleMovieVerseLambdaFunctionCreateMetricsLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Delete
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Action: sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+      - PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Action: dynamodb:UpdateItem
+            Effect: Allow
+            Resource: !GetAtt DynamoDBTableMovieMetrics.Arn
+        PolicyName: LambdaDynamoDBMovieVerseCreateMetrics
+
+  LambdaFunctionMovieVerseCreateMetrics:
+    Type: AWS::Lambda::Function
+    DeletionPolicy: Delete
+    Properties:
+      Code:
+        ZipFile: |
+          import json
+          import logging
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          def lambda_handler(event, context):
+              logger.info("Hello from MovieVerseCreateMetrics - event: %s", json.dumps(event))
+              return {
+                  "statusCode": 200,
+                  "body": json.dumps({"message": "Hello from CreateMetrics"})
+              }
+      Description: To create the metrics when a search is performed on the Movie Verse site
+      FunctionName: MovieVerseCreateMetrics
+      Handler: lambda_function.lambda_handler
+      LoggingConfig:
+        LogFormat: Text
+        LogGroup: /aws/lambda/MovieMetricsCreate
+      MemorySize: 128
+      PackageType: Zip
+      Role: !GetAtt IAMRoleMovieVerseLambdaFunctionCreateMetricsLambdaExecutionRole.Arn
+      Runtime: python3.13
+      Tags:
+      - Key: ApplicationName
+        Value: MovieVerse
+      Timeout: 20
+
+  LambdaPermissionMovieVerseCreateMetricsForAPIGateway:
+    Type: AWS::Lambda::Permission
+    DeletionPolicy: Delete
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref LambdaFunctionMovieVerseCreateMetrics
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayRestApiMovieVerse}/*/POST/movie-metrics'
+
+  IAMRoleMovieVerseLambdaFunctionGetTopFiveMetricsLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Delete
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Action: sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+      - PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Action:
+            - dynamodb:DescribeTable
+            - dynamodb:Scan
+            Effect: Allow
+            Resource: !GetAtt DynamoDBTableMovieMetrics.Arn
+        PolicyName: LambdaDynamoDBMovieVerseGetTopFiveMetrics
+
+  LambdaFunctionMovieVerseGetTopFiveMetrics:
+    Type: AWS::Lambda::Function
+    DeletionPolicy: Delete
+    Properties:
+      Code:
+        ZipFile: |
+          import json
+          import logging
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          def lambda_handler(event, context):
+              logger.info("Hello from MovieVerseGetTopFiveMetrics - event: %s", json.dumps(event))
+              return {
+                  "statusCode": 200,
+                  "body": json.dumps({"message": "Hello from GetTopFiveMetrics"})
+              }
+      Description: To get top five the metrics
+      FunctionName: MovieVerseGetTopFiveMetrics
+      Handler: lambda_function.lambda_handler
+      LoggingConfig:
+        LogFormat: Text
+        LogGroup: /aws/lambda/MovieMetricsGetTopFive
+      MemorySize: 128
+      PackageType: Zip
+      Role: !GetAtt IAMRoleMovieVerseLambdaFunctionGetTopFiveMetricsLambdaExecutionRole.Arn
+      Runtime: python3.13
+      Tags:
+        - Key: ApplicationName
+          Value: MovieVerse
+      Timeout: 20
+
+  LambdaPermissionMovieVerseGetTopFiveMetricsForAPIGateway:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref LambdaFunctionMovieVerseGetTopFiveMetrics
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayRestApiMovieVerse}/*/GET/movie-metrics'
+
+  ApiGatewayRestApiMovieVerse:
+    Type: AWS::ApiGateway::RestApi
+    DeletionPolicy: Delete
+    Properties:
+      ApiKeySourceType: HEADER
+      Description: APIGateway Rest API for Movie Verse application
+      DisableExecuteApiEndpoint: false
+      EndpointConfiguration:
+        IpAddressType: ipv4
+        Types:
+          - REGIONAL
+      Name: MovieVerseAPI
+      Tags:
+        - Key: ApplicationName
+          Value: MovieVerse
+
+  ApiGatewayResourceMovieVerseMovieMetrics:
+    Type: AWS::ApiGateway::Resource
+    DeletionPolicy: Delete
+    Properties:
+      ParentId: !GetAtt ApiGatewayRestApiMovieVerse.RootResourceId
+      PathPart: movie-metrics
+      RestApiId: !Ref ApiGatewayRestApiMovieVerse
+
+  ApiGatewayMethodMovieVerseCreateMovieMetrics:
+    Type: AWS::ApiGateway::Method
+    DeletionPolicy: Delete
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: POST
+      Integration:
+        IntegrationHttpMethod: POST
+        TimeoutInMillis: 29000
+        Type: AWS_PROXY
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunctionMovieVerseCreateMetrics.Arn}/invocations'
+      RestApiId: !Ref ApiGatewayRestApiMovieVerse
+      ResourceId: !Ref ApiGatewayResourceMovieVerseMovieMetrics
+
+  ApiGatewayMethodMovieVerseGetTopFiveMovieMetrics:
+    Type: AWS::ApiGateway::Method
+    DeletionPolicy: Delete
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      Integration:
+        IntegrationHttpMethod: POST
+        TimeoutInMillis: 29000
+        Type: AWS_PROXY
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunctionMovieVerseGetTopFiveMetrics.Arn}/invocations'
+      RestApiId: !Ref ApiGatewayRestApiMovieVerse
+      ResourceId: !Ref ApiGatewayResourceMovieVerseMovieMetrics
+
+  ApiGatewayDeploymentCreateMovieMetricsTest:
+    Type: AWS::ApiGateway::Deployment
+    DeletionPolicy: Delete
+    DependsOn:
+    - ApiGatewayMethodMovieVerseCreateMovieMetrics
+    - ApiGatewayMethodMovieVerseGetTopFiveMovieMetrics
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApiMovieVerse
+      StageName: test
+
+  DynamoDBTableMovieMetrics:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Delete
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: SearchTerm
+          AttributeType: S
+      BillingMode: PROVISIONED
+      DeletionProtectionEnabled: false
+      KeySchema:
+        - AttributeName: SearchTerm
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      TableClass: STANDARD
+      TableName: MovieMetrics
+      Tags:
+        - Key: ApplicationName
+          Value: MovieVerse
+
+Outputs:
+  MovieVerseApiUrl:
+    Value: !Sub https://${ApiGatewayRestApiMovieVerse}.execute-api.${AWS::Region}.amazonaws.com/test

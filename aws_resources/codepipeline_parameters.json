@@ -1,0 +1,6 @@
+[
+  {
+    "ParameterKey": "GithubCodeStarConnectionArn",
+    "ParameterValue": "arn:aws:codeconnections:us-east-1:906333058183:connection/781f56bb-71a8-42cb-8c53-ad3c6f5df737"
+  }
+]
