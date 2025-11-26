@@ -1,0 +1,27 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo "Preparing deployment..."
+      - ls -la
+      - echo "Extracting build artifacts..."
+      
+  build:
+    commands:
+      - echo "Deploying Lambda function $LAMBDA_FUNCTION_NAME..."
+      - |
+        if [ -f "api/create-metrics/CreateMovieMetrics.zip" ]; then
+          aws lambda update-function-code \
+            --function-name $LAMBDA_FUNCTION_NAME \
+            --zip-file fileb://api/create-metrics/CreateMovieMetrics.zip
+          echo "Lambda function updated successfully"
+        else
+          echo "ERROR: CreateMovieMetrics.zip not found"
+          exit 1
+        fi
+
+  post_build:
+    commands:
+      - echo "Deployment completed successfully"
+      - aws lambda get-function --function-name $LAMBDA_FUNCTION_NAME --query 'Configuration.[FunctionName,LastModified,Version]'

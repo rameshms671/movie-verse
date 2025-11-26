@@ -9,11 +9,11 @@ phases:
 
   build:
     commands:
-    - echo "Preparing project zip file..."
-    - zip -r CreateMovieMetrics.zip .
+    - echo "Build phase started"
+    - zip -r CreateMovieMetrics.zip . -x "*.git*" -x "*__pycache__*" -x "buildspec.yaml" -x "deployspec.yaml"
+    - echo "Build phase completed"
 
-  post_build:
-    commands:
-    - echo "Deploying Lambda function..."
-    - aws lambda update-function-code --function-name MovieVerseCreateMetrics --zip-file fileb://CreateMovieMetrics.zip
-    - echo "Lambda function deployment completed."
+artifacts:
+  files:
+    - api/create-metrics/CreateMovieMetrics.zip
+  name: BuildOutput
