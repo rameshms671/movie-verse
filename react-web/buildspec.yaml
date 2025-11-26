@@ -17,7 +17,6 @@ phases:
   pre_build:
     commands:
     - echo "Preparing build environment..."
-    - cd react-web
     - echo "VITE_TMDB_API_KEY=${VITE_TMDB_API_KEY}" > .env.production
     - echo "VITE_AWS_API_BASE_URL=${VITE_AWS_API_BASE_URL}" >> .env.production
     - echo "Created .env.production:"
