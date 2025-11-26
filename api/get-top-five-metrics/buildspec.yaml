@@ -14,9 +14,9 @@ phases:
   post_build:
     commands:
     - echo "Creating Lambda deployment package..."
-    - zip -r function.zip . -x "*.git*" -x "*__pycache__*" -x "buildspec.yaml" -x "deployspec.yaml"
+    - zip -r GetTopFiveMetrics.zip . -x "*.git*" -x "*__pycache__*" -x "buildspec.yaml" -x "deployspec.yaml"
 
 artifacts:
   files:
-    - api/get-top-five-metrics/function.zip
+    - api/get-top-five-metrics/GetTopFiveMetrics.zip
   name: BuildOutput
