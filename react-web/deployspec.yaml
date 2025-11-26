@@ -10,7 +10,14 @@ phases:
   build:
     commands:
       - echo "Deploying React build output to S3 bucket $S3_BUCKET_NAME..."
-      - "if [ -d \"$CODEBUILD_SRC_DIR_BuildOutput\" ]; then aws s3 sync $CODEBUILD_SRC_DIR_BuildOutput s3://$S3_BUCKET_NAME --delete && echo \"Deployment to S3 completed successfully\"; else echo \"ERROR BuildOutput directory not found\" && exit 1; fi"
+      - |
+        if [ -d "$CODEBUILD_SRC_DIR_BuildOutput" ]; then
+          aws s3 sync "$CODEBUILD_SRC_DIR_BuildOutput" "s3://$S3_BUCKET_NAME" --delete
+          echo "Deployment to S3 completed successfully"
+        else
+          echo "ERROR: BuildOutput directory not found"
+          exit 1
+        fi
   post_build:
     commands:
       - echo "Deployment completed successfully"
