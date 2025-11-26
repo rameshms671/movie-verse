@@ -3,7 +3,6 @@ version: 0.2
 env:
   variables:
     VITE_TMDB_API_KEY: "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJkY2VkNzUxMWU2MmUwMzUwZDgxNmEyNzA2OGRhOWZiOCIsIm5iZiI6MTc2MjI2OTQ0Mi4wNTQwMDAxLCJzdWIiOiI2OTBhMTkwMjU4ZDQyMTcxN2E0MTM5MzkiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.qQkTLZD12a0juvf0VlXl4WkKsFiLuSighJy0m41frNs"
-    VITE_AWS_API_BASE_URL: "https://l7vnrpd9qe.execute-api.us-east-1.amazonaws.com/v1/"
 
 phases:
   install:

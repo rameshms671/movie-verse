@@ -214,4 +214,6 @@ Resources:
 
 Outputs:
   MovieVerseApiUrl:
-    Value: !Sub https://${ApiGatewayRestApiMovieVerse}.execute-api.${AWS::Region}.amazonaws.com/test
+    Value: !Sub https://${ApiGatewayRestApiMovieVerse}.execute-api.${AWS::Region}.amazonaws.com/test/
+    Export:
+      Name: MovieVerseApiUrl
