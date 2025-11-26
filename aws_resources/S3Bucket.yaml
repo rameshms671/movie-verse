@@ -49,11 +49,6 @@ Resources:
         Status: Enabled
 
 Outputs:
-  S3BucketMovieVerseLambdaSourceCodeName:
-    Value: !Ref S3BucketMovieVerseLambdaSourceCode
-    Export:
-      Name: S3BucketMovieVerseLambdaSourceCodeName
-
   S3BucketMovieVerseWebsiteURL:
     Description: URL of the S3 static website
     Value: !GetAtt S3BucketMovieVerseWebsite.WebsiteURL
