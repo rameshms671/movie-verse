@@ -25,7 +25,6 @@ phases:
   build:
     commands:
     - echo "Building the React project..."
-    - cd react-web
     - npm run build
     - echo "Build completed successfully"
 
