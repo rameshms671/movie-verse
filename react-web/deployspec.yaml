@@ -3,17 +3,15 @@ version: 0.2
 phases:
   pre_build:
     commands:
-      - echo "Preparing deployment to S3..."
-      - ls -la
-      - echo "Checking BuildOutput directory..."
-      - ls -la $CODEBUILD_SRC_DIR_BuildOutput || echo "BuildOutput directory not found"
-      
+    - echo "Preparing deployment to S3..."
+    - ls -la
+    - echo "Checking BuildOutput directory..."
+    - ls -la $CODEBUILD_SRC_DIR_BuildOutput || echo "BuildOutput directory not found"
   build:
     commands:
-      - echo "Deploying React build output to S3 bucket $S3_BUCKET_NAME..."
-      - if [ -d "$CODEBUILD_SRC_DIR_BuildOutput" ]; then aws s3 sync $CODEBUILD_SRC_DIR_BuildOutput s3://$S3_BUCKET_NAME --delete && echo "Deployment to S3 completed successfully"; else echo "ERROR BuildOutput directory not found" && exit 1; fi
-
+    - echo "Deploying React build output to S3 bucket $S3_BUCKET_NAME..."
+    - if [ -d "$CODEBUILD_SRC_DIR_BuildOutput" ]; then aws s3 sync $CODEBUILD_SRC_DIR_BuildOutput s3://$S3_BUCKET_NAME --delete && echo "Deployment to S3 completed successfully"; else echo "ERROR BuildOutput directory not found" && exit 1; fi
   post_build:
     commands:
-      - echo "Deployment completed successfully"
-      - echo "Website URL: http://$S3_BUCKET_NAME.s3-website-us-east-1.amazonaws.com"
+    - echo "Deployment completed successfully"
+    - echo "Website URL: http://$S3_BUCKET_NAME.s3-website-us-east-1.amazonaws.com"
