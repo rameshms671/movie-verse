@@ -23,5 +23,5 @@ phases:
 artifacts:
   files:
   - '**/*'
-  base-directory: dist
+  base-directory: react-web/dist
   name: BuildOutput
